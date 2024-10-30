@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+import subprocess
+import os
+import sys
+import argparse
+
+def unlock_bitwarden():
+    try:
+        subprocess.run(['rbw', 'unlock'], check=True)
+        print('Bitwarden unlocked successfully.')
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f'Error unlocking Bitwarden: {e}')
+        return False
+
+def generate_yubikey_ssh_key(key_name, no_touch_required):
+    ssh_dir = os.path.expanduser('~/.ssh')
+    if not os.path.exists(ssh_dir):
+        os.makedirs(ssh_dir)
+    
+    key_path = os.path.join(ssh_dir, key_name)
+    
+    command = ['ssh-keygen', '-t', 'ed25519-sk', '-f', key_path, '-C', f'YubiKey {key_name}']
+    if no_touch_required:
+        command.extend(['-O', 'no-touch-required'])
+    
+    try:
+        subprocess.run(command, check=True)
+        print(f"SSH key generated successfully and saved to {key_path}")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error generating SSH key: {e}")
+        return False
+
+def get_yubikey_serial():
+    try:
+        result = subprocess.run(['ykman', 'info'], capture_output=True, text=True, check=True)
+        for line in result.stdout.split('\n'):
+            if 'Serial number:' in line:
+                return line.split(':')[1].strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting YubiKey serial number: {e}")
+        return None
+
+def create_bitwarden_entry(entry_name, key_name, serial_number, no_touch_required):
+    key_path = os.path.expanduser(f'~/.ssh/{key_name}')
+    try:
+        with open(key_path, 'r') as f:
+            private_key = f.read().strip()
+        with open(f'{key_path}.pub', 'r') as f:
+            public_key = f.read().strip()
+    except IOError as e:
+        print(f'Error reading SSH key files: {e}')
+        return False
+
+    note_content = f"""YubiKey SSH Key
+
+Type: ed25519-sk
+Private Key:
+{private_key}
+
+Public Key:
+{public_key}
+
+YubiKey Serial: {serial_number}
+URI: ssh://yubikey
+"""
+
+    if no_touch_required:
+        note_content += "\nSECURITY WARNING: This key was generated with the no-touch-required option. Physical touch is not required for authentication."
+
+    try:
+        subprocess.run(['rbw', 'add', entry_name], input=note_content, text=True, check=True)
+        print(f'Bitwarden entry "{entry_name}" created successfully.')
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f'Error creating Bitwarden entry: {e}')
+        return False
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate YubiKey SSH key and store in Bitwarden")
+    parser.add_argument("--no-touch-required", action="store_true", help="Generate key without requiring touch")
+    args = parser.parse_args()
+
+    if not unlock_bitwarden():
+        print("Failed to unlock Bitwarden. Exiting.")
+        sys.exit(1)
+
+    key_name = input("Enter a name for the YubiKey SSH key: ").strip()
+    if not key_name:
+        print("Name cannot be empty. Exiting.")
+        return
+
+    if generate_yubikey_ssh_key(key_name, args.no_touch_required):
+        serial_number = get_yubikey_serial()
+        if serial_number:
+            if create_bitwarden_entry(key_name, key_name, serial_number, args.no_touch_required):
+                print("Process completed successfully.")
+            else:
+                print("Failed to create Bitwarden entry.")
+        else:
+            print("Failed to get YubiKey serial number.")
+    else:
+        print("Failed to generate SSH key.")
+
+if __name__ == "__main__":
+    main()
