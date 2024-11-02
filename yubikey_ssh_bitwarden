@@ -14,7 +14,7 @@ def unlock_bitwarden():
         print(f'Error unlocking Bitwarden: {e}')
         return False
 
-def generate_yubikey_ssh_key(key_name, no_touch_required):
+def generate_yubikey_ssh_key(key_name, no_touch_required, verified_required):
     ssh_dir = os.path.expanduser('~/.ssh')
     if not os.path.exists(ssh_dir):
         os.makedirs(ssh_dir)
@@ -24,6 +24,8 @@ def generate_yubikey_ssh_key(key_name, no_touch_required):
     command = ['ssh-keygen', '-t', 'ed25519-sk', '-f', key_path, '-C', f'YubiKey {key_name}']
     if no_touch_required:
         command.extend(['-O', 'no-touch-required'])
+    if verified_required:
+        command.extend(['-O', 'verify-required'])
     
     try:
         subprocess.run(command, check=True)
@@ -43,7 +45,7 @@ def get_yubikey_serial():
         print(f"Error getting YubiKey serial number: {e}")
         return None
 
-def create_bitwarden_entry(entry_name, key_name, serial_number, no_touch_required):
+def create_bitwarden_entry(entry_name, key_name, serial_number, no_touch_required, verified_required):
     key_path = os.path.expanduser(f'~/.ssh/{key_name}')
     try:
         with open(key_path, 'r') as f:
@@ -69,6 +71,8 @@ URI: ssh://yubikey
 
     if no_touch_required:
         note_content += "\nSECURITY WARNING: This key was generated with the no-touch-required option. Physical touch is not required for authentication."
+    if verified_required:
+        note_content += "\nSECURITY NOTE: This key was generated with the verify-required option. User verification (e.g., PIN entry) is required for authentication."
 
     try:
         subprocess.run(['rbw', 'add', entry_name], input=note_content, text=True, check=True)
@@ -81,6 +85,7 @@ URI: ssh://yubikey
 def main():
     parser = argparse.ArgumentParser(description="Generate YubiKey SSH key and store in Bitwarden")
     parser.add_argument("--no-touch-required", action="store_true", help="Generate key without requiring touch")
+    parser.add_argument("--verified-required", action="store_true", help="Generate key requiring user verification")
     args = parser.parse_args()
 
     if not unlock_bitwarden():
@@ -92,10 +97,10 @@ def main():
         print("Name cannot be empty. Exiting.")
         return
 
-    if generate_yubikey_ssh_key(key_name, args.no_touch_required):
+    if generate_yubikey_ssh_key(key_name, args.no_touch_required, args.verified_required):
         serial_number = get_yubikey_serial()
         if serial_number:
-            if create_bitwarden_entry(key_name, key_name, serial_number, args.no_touch_required):
+            if create_bitwarden_entry(key_name, key_name, serial_number, args.no_touch_required, args.verified_required):
                 print("Process completed successfully.")
             else:
                 print("Failed to create Bitwarden entry.")

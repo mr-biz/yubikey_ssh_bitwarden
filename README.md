@@ -6,13 +6,14 @@ This Python script automates the process of generating a YubiKey-based SSH key a
 
 - Generates an ED25519-SK SSH key using a YubiKey
 - Optionally creates a key without touch requirement
+- Optionally creates a key requiring user verification (e.g., PIN entry)
 - Retrieves the YubiKey's serial number
 - Creates a Bitwarden entry with the generated SSH key and YubiKey information using rbw
 
 ## Prerequisites
 
 - Python 3.x
-- YubiKey Manager (`ykman`)
+- YubiKey Manager (ykman)
 - OpenSSH with FIDO2 support
 - rbw (Unofficial Bitwarden CLI: https://github.com/doy/rbw)
 
@@ -22,15 +23,22 @@ This Python script automates the process of generating a YubiKey-based SSH key a
 2. Ensure you have the required dependencies installed.
 3. Install rbw following the instructions on its GitHub page: https://github.com/doy/rbw
 
-### Options
+## Options
 
 - `--no-touch-required`: Generate an SSH key that doesn't require physical touch for authentication (less secure)
+- `--verified-required`: Generate an SSH key that requires user verification (e.g., PIN entry) for authentication
 
 ## Usage
 
 Run the script with Python:
+
+./yubikey_ssh_bitwarden [options]
+
+Examples:
+
 ./yubikey_ssh_bitwarden
-./yubikey_ssh_bitwarden ----no-touch-required
+./yubikey_ssh_bitwarden --no-touch-required
+./yubikey_ssh_bitwarden --verified-required
 
 
 ## How It Works
@@ -43,15 +51,16 @@ Run the script with Python:
 
 ## Security Considerations
 
-- The script stores the private key in Bitwarden but cannot be used without the Yubikey that it was created with. Ensure your Bitwarden account is properly secured.
+- The script stores the private key in Bitwarden but cannot be used without the YubiKey that it was created with. Ensure your Bitwarden account is properly secured.
 - Using the `--no-touch-required` option reduces security by not requiring physical touch for authentication.
+- Using the `--verified-required` option enhances security by requiring user verification (e.g., PIN entry) for authentication.
 - rbw maintains a background process to hold keys in memory, similar to ssh-agent or gpg-agent. This improves usability but requires proper system security.
 
 ## About rbw
 
-rbw is an unofficial command-line client for Bitwarden that offers improved usability over the official CLI. It maintains a background process to hold keys in memory, allowing for simpler interaction without manually managing lock/unlock states or environment variables[1].
+rbw is an unofficial command-line client for Bitwarden that offers improved usability over the official CLI. It maintains a background process to hold keys in memory, allowing for simpler interaction without manually managing lock/unlock states or environment variables.
 
-For more information about rbw, including installation instructions for various platforms, configuration options, and usage details, visit the rbw GitHub repository: https://github.com/doy/rbw
+For more information about rbw, including installation instructions for various platforms, configuration options, and usage details, visit the [rbw GitHub repository](https://github.com/doy/rbw).
 
 ## Contributing
 
@@ -59,4 +68,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is open source and available under the MIT License.
