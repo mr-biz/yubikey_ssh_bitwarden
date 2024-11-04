@@ -35,7 +35,7 @@ Run the script with Python:
 ./yubikey_ssh_bitwarden [options]
 
 
-Examples:
+Examples:  
 `./yubikey_ssh_bitwarden`  
 `./yubikey_ssh_bitwarden --no-touch-required`  
 `./yubikey_ssh_bitwarden --verified-required`  
