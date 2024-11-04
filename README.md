@@ -7,7 +7,7 @@ This Python script automates the process of generating a YubiKey-based SSH key a
 - Generates an ED25519-SK SSH key using a YubiKey
 - Optionally creates a key without touch requirement
 - Optionally creates a key requiring user verification (e.g., PIN entry)
-- Retrieves the YubiKey's serial number
+- Retrieves YubiKey information (serial number or device type)
 - Creates a Bitwarden entry with the generated SSH key and YubiKey information using rbw
 
 ## Prerequisites
@@ -34,8 +34,8 @@ Run the script with Python:
 
 ./yubikey_ssh_bitwarden [options]
 
-Examples:
 
+Examples:
 ./yubikey_ssh_bitwarden
 ./yubikey_ssh_bitwarden --no-touch-required
 ./yubikey_ssh_bitwarden --verified-required
@@ -46,12 +46,12 @@ Examples:
 1. Unlocks Bitwarden vault using rbw
 2. Prompts for a name for the new SSH key
 3. Generates an ED25519-SK SSH key using the YubiKey
-4. Retrieves the YubiKey's serial number
+4. Retrieves YubiKey information (serial number or device type)
 5. Creates a Bitwarden entry using rbw, containing the private key, public key, and YubiKey information
 
 ## Security Considerations
 
-- The script stores the private key in Bitwarden but cannot be used without the YubiKey that it was created with. Ensure your Bitwarden account is properly secured.
+- The script stores an encrypted version of the SSH private key in Bitwarden. The key cannot be used without the YubiKey that it was created with. Ensure your Bitwarden account is properly secured.
 - Using the `--no-touch-required` option reduces security by not requiring physical touch for authentication.
 - Using the `--verified-required` option enhances security by requiring user verification (e.g., PIN entry) for authentication.
 - rbw maintains a background process to hold keys in memory, similar to ssh-agent or gpg-agent. This improves usability but requires proper system security.

@@ -35,17 +35,19 @@ def generate_yubikey_ssh_key(key_name, no_touch_required, verified_required):
         print(f"Error generating SSH key: {e}")
         return False
 
-def get_yubikey_serial():
+def get_yubikey_info():
     try:
         result = subprocess.run(['ykman', 'info'], capture_output=True, text=True, check=True)
         for line in result.stdout.split('\n'):
             if 'Serial number:' in line:
                 return line.split(':')[1].strip()
+        # If serial number is not found, return a placeholder or device type
+        return "SecurityKey-" + result.stdout.split('\n')[0].split(':')[1].strip()
     except subprocess.CalledProcessError as e:
-        print(f"Error getting YubiKey serial number: {e}")
-        return None
+        print(f"Error getting YubiKey info: {e}")
+        return "Unknown YubiKey"
 
-def create_bitwarden_entry(entry_name, key_name, serial_number, no_touch_required, verified_required):
+def create_bitwarden_entry(entry_name, key_name, device_info, no_touch_required, verified_required):
     key_path = os.path.expanduser(f'~/.ssh/{key_name}')
     try:
         with open(key_path, 'r') as f:
@@ -65,7 +67,7 @@ Private Key:
 Public Key:
 {public_key}
 
-YubiKey Serial: {serial_number}
+YubiKey Info: {device_info}
 URI: ssh://yubikey
 """
 
@@ -98,14 +100,11 @@ def main():
         return
 
     if generate_yubikey_ssh_key(key_name, args.no_touch_required, args.verified_required):
-        serial_number = get_yubikey_serial()
-        if serial_number:
-            if create_bitwarden_entry(key_name, key_name, serial_number, args.no_touch_required, args.verified_required):
-                print("Process completed successfully.")
-            else:
-                print("Failed to create Bitwarden entry.")
+        device_info = get_yubikey_info()
+        if create_bitwarden_entry(key_name, key_name, device_info, args.no_touch_required, args.verified_required):
+            print("Process completed successfully.")
         else:
-            print("Failed to get YubiKey serial number.")
+            print("Failed to create Bitwarden entry.")
     else:
         print("Failed to generate SSH key.")
 
